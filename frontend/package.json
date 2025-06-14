@@ -1,0 +1,12 @@
+{
+  "name": "titanic-frontend",
+  "version": "1.0.0",
+  "description": "Titanic Booking Assistant Frontend",
+  "scripts": {
+    "start": "python3 -m http.server $PORT",
+    "build": "echo 'Static files ready'"
+  },
+  "engines": {
+    "python": "3.x"
+  }
+}
