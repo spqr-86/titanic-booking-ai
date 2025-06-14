@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMS Титаник - Билетная касса White Star Line</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+        
+        :root {
+            --cream: #f8f5f0;
+            --gold: #d4af37;
+            --dark-gold: #b8941f;
+            --navy: #1a237e;
+            --dark-navy: #0d1b5e;
+            --brown: #8b4513;
+            --dark-brown: #5d2f0a;
+            --text-dark: #2c1810;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Crimson Text', serif;
+            background: linear-gradient(135deg, var(--cream) 0%, #ede7d8 100%);
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* Ornamental Border */
+        .page-border {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 8px solid var(--gold);
+            border-image: repeating-linear-gradient(45deg, var(--gold), var(--gold) 10px, var(--dark-gold) 10px, var(--dark-gold) 20px) 8;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--dark-navy) 100%);
+            color: var(--cream);
+            padding: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="%23d4af37" opacity="0.3"/></svg>') repeat;
+            background-size: 50px 50px;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 0.5rem;
+            letter-spacing: 3px;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            font-style: italic;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 4rem 2rem;
+            text-align: center;
+            position: relative;
+            background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+        }
+
+        .hero::before {
+            content: '⚓';
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            font-size: 3rem;
+            color: var(--gold);
+            opacity: 0.3;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '⚓';
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            font-size: 3rem;
+            color: var(--gold);
+            opacity: 0.3;
+            animation: float 3s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hero-title {
+            font-family: 'Cinzel', serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 1rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--brown);
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+
+        .maiden-voyage {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--dark-gold) 100%);
+            color: var(--navy);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
+            50% { box-shadow: 0 6px 25px rgba(212, 175, 55, 0.6); }
+        }
+
+        /* Ship Illustration */
+        .ship-container {
+            margin: 3rem 0;
+            position: relative;
+        }
+
+        .ship {
+            font-size: 8rem;
+            color: var(--navy);
+            animation: ship-sway 4s ease-in-out infinite;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+        }
+
+        @keyframes ship-sway {
+            0%, 100% { transform: rotate(-2deg) translateY(0px); }
+            50% { transform: rotate(2deg) translateY(-5px); }
+        }
+
+        .waves {
+            position: absolute;
+            bottom: -2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: var(--navy);
+            opacity: 0.6;
+            animation: wave-motion 3s ease-in-out infinite;
+        }
+
+        @keyframes wave-motion {
+            0%, 100% { transform: translateX(-50%) scaleX(1); }
+            50% { transform: translateX(-50%) scaleX(1.1); }
+        }
+
+        /* CTA Button */
+        .cta-button {
+            background: linear-gradient(135deg, var(--brown) 0%, var(--dark-brown) 100%);
+            color: var(--cream);
+            padding: 1.2rem 3rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+        }
+
+        /* Information Grid */
+        .info-section {
+            padding: 4rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2.5rem;
+            border-radius: 15px;
+            border: 2px solid var(--gold);
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, var(--gold), var(--dark-gold), var(--gold));
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .info-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 1rem;
+        }
+
+        .card-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-dark);
+        }
+
+        .price {
+            color: var(--brown);
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        /* Journey Info */
+        .journey-info {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--dark-navy) 100%);
+            color: var(--cream);
+            padding: 3rem 2rem;
+            margin: 4rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .journey-info::before,
+        .journey-info::after {
+            content: '◆';
+            position: absolute;
+            top: 1rem;
+            font-size: 2rem;
+            color: var(--gold);
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        .journey-info::before {
+            left: 2rem;
+        }
+
+        .journey-info::after {
+            right: 2rem;
+            animation-delay: 1s;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .journey-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--gold);
+        }
+
+        .route {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+        }
+
+        .port {
+            background: rgba(212, 175, 55, 0.2);
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            border: 1px solid var(--gold);
+            font-weight: 600;
+        }
+
+        .arrow {
+            font-size: 1.5rem;
+            color: var(--gold);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--text-dark);
+            color: var(--cream);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-text {
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .ship {
+                font-size: 6rem;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .route {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* Chat Interface */
+        .chat-section {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+            pointer-events: none;
+        }
+
+        .chat-section.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .chat-container {
+            background: linear-gradient(135deg, rgba(248, 245, 240, 0.95) 0%, rgba(237, 231, 216, 0.95) 100%);
+            border: 3px solid var(--gold);
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="1" fill="%23d4af37" opacity="0.1"/></svg>') repeat;
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--dark-navy) 100%);
+            color: var(--cream);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .chat-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .chat-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            animation: fadeInMessage 0.5s ease-out;
+        }
+
+        @keyframes fadeInMessage {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.agent {
+            text-align: left;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 80%;
+            padding: 1.2rem 1.8rem;
+            border-radius: 20px;
+            position: relative;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .message.agent .message-bubble {
+            background: linear-gradient(135deg, rgba(26, 35, 126, 0.9) 0%, rgba(13, 27, 94, 0.9) 100%);
+            color: var(--cream);
+            border-bottom-left-radius: 8px;
+            border: 2px solid var(--gold);
+            box-shadow: 0 4px 15px rgba(26, 35, 126, 0.3);
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9) 0%, rgba(93, 47, 10, 0.9) 100%);
+            color: var(--cream);
+            border-bottom-right-radius: 8px;
+            border: 2px solid var(--dark-gold);
+            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+        }
+
+        .message-sender {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .message.agent .message-sender {
+            color: var(--navy);
+        }
+
+        .message.user .message-sender {
+            color: var(--brown);
+        }
+
+        .typing-indicator {
+            display: none;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .typing-indicator.active {
+            display: block;
+            animation: fadeInMessage 0.3s ease-out;
+        }
+
+        .typing-bubble {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(26, 35, 126, 0.7) 0%, rgba(13, 27, 94, 0.7) 100%);
+            color: var(--cream);
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
+            border-bottom-left-radius: 8px;
+            border: 2px solid var(--gold);
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gold);
+            margin: 0 2px;
+            animation: typing 1.4s ease-in-out infinite;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: 0s; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-10px); opacity: 1; }
+        }
+
+        .chat-input-area {
+            padding: 1.5rem 2rem;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(184, 148, 31, 0.1) 100%);
+            border-top: 2px solid var(--gold);
+            position: relative;
+            z-index: 2;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: 2px solid var(--gold);
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            font-family: 'Crimson Text', serif;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--navy);
+            box-shadow: 0 0 15px rgba(26, 35, 126, 0.2);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .chat-input::placeholder {
+            color: rgba(44, 24, 16, 0.6);
+            font-style: italic;
+        }
+
+        .send-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--brown) 0%, var(--dark-brown) 100%);
+            color: var(--cream);
+            border: none;
+            border-radius: 25px;
+            font-family: 'Crimson Text', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .chat-close {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 3;
+            transition: all 0.3s ease;
+        }
+
+        .chat-close:hover {
+            transform: scale(1.2);
+            color: var(--cream);
+        }
+
+        /* Scrollbar Styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--dark-gold);
+        }
+
+        /* Vintage Paper Texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 100, 80, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(120, 100, 80, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 100, 80, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-border"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">★ WHITE STAR LINE ★</div>
+            <div class="tagline">Королевские почтовые пароходы - Лучший океанский сервис</div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1 class="hero-title">RMS ТИТАНИК</h1>
+            <p class="hero-subtitle">Корабль Мечты</p>
+            <div class="maiden-voyage">⚡ ПЕРВЫЙ РЕЙС ⚡</div>
+            
+            <div class="ship-container">
+                <div class="ship">🚢</div>
+                <div class="waves">🌊 🌊 🌊</div>
+            </div>
+            
+            <button class="cta-button" onclick="startBooking()">
+                ЗАБРОНИРОВАТЬ БИЛЕТ
+            </button>
+        </section>
+
+        <section class="info-section">
+            <div class="info-grid">
+                <div class="info-card">
+                    <span class="card-icon">👑</span>
+                    <h3 class="card-title">Первый класс</h3>
+                    <p class="card-text">
+                        Непревзойденная роскошь. Частные каюты, парадная лестница, 
+                        ресторан à la carte и курительный салон.
+                        <br><br>
+                        <span class="price">От £30 до £870</span>
+                    </p>
+                </div>
+                
+                <div class="info-card">
+                    <span class="card-icon">🎩</span>
+                    <h3 class="card-title">Второй класс</h3>
+                    <p class="card-text">
+                        Комфортные каюты, не уступающие первому классу 
+                        других пароходов. Электричество и удобства.
+                        <br><br>
+                        <span class="price">£12</span>
+                    </p>
+                </div>
+                
+                <div class="info-card">
+                    <span class="card-icon">⚓</span>
+                    <h3 class="card-title">Третий класс</h3>
+                    <p class="card-text">
+                        Чистые современные каюты с электричеством.
+                        Намного лучше третьего класса других судов.
+                        <br><br>
+                        <span class="price">£3 - £8</span>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="journey-info">
+            <h2 class="journey-title">Первый рейс</h2>
+            <div class="route">
+                <div class="port">Саутгемптон, Англия</div>
+                <div class="arrow">→</div>
+                <div class="port">Шербур, Франция</div>
+                <div class="arrow">→</div>
+                <div class="port">Квинстаун, Ирландия</div>
+                <div class="arrow">→</div>
+                <div class="port">Нью-Йорк, США</div>
+            </div>
+            <p style="margin-top: 2rem; font-size: 1.2rem;">
+                <strong>Отправление:</strong> 10 апреля 1912 г. в 12:00<br>
+                <strong>Прибытие:</strong> 17 апреля 1912 г. (планируется)<br>
+                <strong>Время в пути:</strong> 7 дней непревзойденной роскоши
+            </p>
+        </section>
+
+        <!-- Chat Interface -->
+        <section class="chat-section" id="chatSection">
+            <div class="chat-container">
+                <button class="chat-close" onclick="closeChat()">×</button>
+                <div class="chat-header">
+                    <div class="chat-title">⚓ Билетная касса White Star Line ⚓</div>
+                    <div class="chat-subtitle">Кассир готов помочь с бронированием</div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message agent">
+                        <div class="message-sender">Кассир - Господин Харрисон</div>
+                        <div class="message-bubble">
+                            Добро пожаловать в билетную кассу White Star Line! Имею честь помочь Вам забронировать место на великолепном пароходе "Титаник" для его первого рейса. Чем могу быть полезен Вам сегодня, сударь или сударыня?
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-bubble">
+                        Господин Харрисон готовит ответ
+                        <span class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="chat-input-area">
+                    <div class="chat-input-container">
+                        <input 
+                            type="text" 
+                            class="chat-input" 
+                            id="chatInput" 
+                            placeholder="Напишите Ваш вопрос..."
+                            onkeypress="handleKeyPress(event)"
+                        >
+                        <button class="send-button" onclick="sendMessage()" id="sendButton">
+                            Отправить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p class="footer-text">
+            White Star Line - Королевские почтовые пароходы<br>
+            "Лучшие корабли Атлантики"
+        </p>
+    </footer>
+
+    <script>
+            // Chat functionality
+            let isTyping = false;
+            
+            // Функция отправки сообщения к API
+            async function getResponse(message) {
+                try {
+                    console.log('📤 Отправляем сообщение:', message);
+                    
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            session_id: getSessionId()
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('❌ API Error:', errorData);
+                        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('📥 Получен ответ:', data);
+                    return data.response;
+                    
+                } catch (error) {
+                    console.error('💥 Ошибка API:', error);
+                    
+                    // Дружелюбные сообщения об ошибках в стиле эпохи
+                    if (error.message.includes('OpenAI')) {
+                        return "Прошу прощения, наш телеграфный аппарат временно испытывает технические затруднения. Наши инженеры уже устраняют неполадку. Попробуйте повторить запрос через минуту, сударь.";
+                    } else if (error.message.includes('401')) {
+                        return "Приношу извинения, возникли проблемы с авторизацией нашей системы связи. Обратитесь к администратору.";
+                    } else if (error.message.includes('429')) {
+                        return "Прошу прощения, наша система временно перегружена запросами. Попробуйте повторить через несколько минут.";
+                    } else if (error.message.includes('Failed to fetch')) {
+                        return "Похоже, связь с нашим главным офисом прервана. Убедитесь, что наша служба бронирования работает (backend должен быть запущен на порту 8000).";
+                    } else {
+                        return "Приношу глубочайшие извинения, произошла непредвиденная техническая неполадка в нашей системе бронирования. Наши лучшие специалисты уже работают над решением проблемы.";
+                    }
+                }
+            }
+
+            function startBooking() {
+                const chatSection = document.getElementById('chatSection');
+                chatSection.classList.add('active');
+                chatSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Проверяем здоровье API при открытии чата
+                checkAPIHealth().then(isHealthy => {
+                    if (!isHealthy) {
+                        addMessage(
+                            "Прошу прощения, наша система бронирования временно недоступна. Убедитесь, что служба запущена, и попробуйте еще раз.", 
+                            'agent'
+                        );
+                    }
+                });
+                
+                // Focus на input после анимации
+                setTimeout(() => {
+                    document.getElementById('chatInput').focus();
+                }, 600);
+            }
+
+            function closeChat() {
+                const chatSection = document.getElementById('chatSection');
+                chatSection.classList.remove('active');
+            }
+
+            // Функция для очистки чата
+            function clearChat() {
+                const messagesContainer = document.getElementById('chatMessages');
+                // Оставляем только приветственное сообщение
+                const welcomeMessage = messagesContainer.querySelector('.message.agent');
+                messagesContainer.innerHTML = '';
+                if (welcomeMessage) {
+                    messagesContainer.appendChild(welcomeMessage);
+                }
+                
+                // Очищаем сессию на сервере
+                clearChatSession();
+            }
+
+            function handleKeyPress(event) {
+                if (event.key === 'Enter' && !isTyping) {
+                    sendMessage();
+                }
+            }
+
+            async function sendMessage() {
+                const input = document.getElementById('chatInput');
+                const message = input.value.trim();
+                
+                if (!message || isTyping) return;
+                
+                // Добавляем сообщение пользователя
+                addMessage(message, 'user');
+                input.value = '';
+                
+                // Показываем индикатор печати
+                showTyping();
+                
+                try {
+                    // Получаем ответ от API
+                    const response = await getResponse(message);
+                    hideTyping();
+                    addMessage(response, 'agent');
+                } catch (error) {
+                    hideTyping();
+                    addMessage("Прошу прощения, произошла непредвиденная ошибка. Попробуйте еще раз.", 'agent');
+                }
+            }
+
+            function addMessage(text, sender) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                
+                const senderName = sender === 'agent' ? 'Кассир - Господин Харрисон' : 'Вы';
+                
+                messageDiv.innerHTML = `
+                    <div class="message-sender">${senderName}</div>
+                    <div class="message-bubble">${text}</div>
+                `;
+                
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function showTyping() {
+                isTyping = true;
+                const typingIndicator = document.getElementById('typingIndicator');
+                const sendButton = document.getElementById('sendButton');
+                
+                typingIndicator.classList.add('active');
+                sendButton.disabled = true;
+                
+                // Scroll to bottom
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function hideTyping() {
+                isTyping = false;
+                const typingIndicator = document.getElementById('typingIndicator');
+                const sendButton = document.getElementById('sendButton');
+                
+                typingIndicator.classList.remove('active');
+                sendButton.disabled = false;
+            }
+
+            // Добавляем интерактивные sparkles при движении мыши
+            document.addEventListener('mousemove', (e) => {
+                if (Math.random() > 0.98) {
+                    createSparkle(e.clientX, e.clientY);
+                }
+            });
+
+            function createSparkle(x, y) {
+                const sparkle = document.createElement('div');
+                sparkle.innerHTML = '✨';
+                sparkle.style.position = 'fixed';
+                sparkle.style.left = x + 'px';
+                sparkle.style.top = y + 'px';
+                sparkle.style.pointerEvents = 'none';
+                sparkle.style.zIndex = '999';
+                sparkle.style.fontSize = '1rem';
+                sparkle.style.animation = 'sparkle-fade 1s ease-out forwards';
+                
+                document.body.appendChild(sparkle);
+                
+                setTimeout(() => {
+                    if (document.body.contains(sparkle)) {
+                        document.body.removeChild(sparkle);
+                    }
+                }, 1000);
+            }
+
+            // Добавляем анимацию для sparkles
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes sparkle-fade {
+                    0% { opacity: 1; transform: translateY(0px) scale(1); }
+                    100% { opacity: 0; transform: translateY(-20px) scale(0.5); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Дополнительная кнопка очистки чата (опционально)
+            function addClearButton() {
+                const chatHeader = document.querySelector('.chat-header');
+                const clearBtn = document.createElement('button');
+                clearBtn.innerHTML = '🗑️';
+                clearBtn.style.cssText = `
+                    position: absolute;
+                    top: 1rem;
+                    left: 1.5rem;
+                    background: none;
+                    border: none;
+                    color: var(--gold);
+                    font-size: 1.2rem;
+                    cursor: pointer;
+                    z-index: 3;
+                    transition: all 0.3s ease;
+                `;
+                clearBtn.title = 'Очистить чат';
+                clearBtn.onclick = clearChat;
+                
+                clearBtn.onmouseover = () => clearBtn.style.transform = 'scale(1.2)';
+                clearBtn.onmouseout = () => clearBtn.style.transform = 'scale(1)';
+                
+                chatHeader.appendChild(clearBtn);
+            }
+
+            // Добавляем кнопку очистки при загрузке
+            document.addEventListener('DOMContentLoaded', () => {
+                addClearButton();
+            });
+    </script>
+    <script src="config.js"></script>
+</body>
+</html>
