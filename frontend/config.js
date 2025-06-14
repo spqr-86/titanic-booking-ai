@@ -64,3 +64,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('⚠️ API не готов. Убедитесь что backend запущен.');
     }
 });
+
+function formatSources(sources) {
+    if (!sources || sources.length === 0) return '';
+    
+    let sourcesHtml = '<div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">';
+    sourcesHtml += '<details style="margin-top: 5px;">';
+    sourcesHtml += '<summary style="cursor: pointer; color: var(--gold);">📚 Источники из архивов White Star Line</summary>';
+    
+    sources.forEach((source, index) => {
+        sourcesHtml += `<div style="margin: 5px 0; padding: 5px; background: rgba(212, 175, 55, 0.1); border-radius: 5px;">`;
+        sourcesHtml += `<strong>${source.topic || 'Архивы'}:</strong> ${source.content}`;
+        sourcesHtml += `</div>`;
+    });
+    
+    sourcesHtml += '</details></div>';
+    return sourcesHtml;
+}

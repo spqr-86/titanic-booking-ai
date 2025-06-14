@@ -1,10 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import logging
+from services.rag_service import TitanicRAGService
+
+# Отключаем телеметрию ChromaDB
+os.environ["ANONYMIZED_TELEMETRY"] = "False"  
+os.environ["CHROMA_CLIENT_TELEMETRY"] = "False"
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +42,15 @@ if not openai_api_key:
 else:
     client = OpenAI(api_key=openai_api_key)
 
+    # Инициализация RAG сервиса
+    try:
+        logger.info("🧠 Инициализация RAG сервиса...")
+        rag_service = TitanicRAGService(openai_api_key)
+        logger.info("✅ RAG сервис готов к работе")
+    except Exception as e:
+        logger.error(f"❌ Ошибка инициализации RAG: {e}")
+        rag_service = None
+
 # Модели данных
 class ChatMessage(BaseModel):
     message: str
@@ -45,6 +60,13 @@ class ChatResponse(BaseModel):
     response: str
     session_id: str
     status: str = "success"
+
+class ChatResponseWithSources(BaseModel):
+    response: str
+    session_id: str
+    status: str = "success"
+    sources: List[dict] = []
+    has_rag: bool = True
 
 # Промпт для AI агента
 TITANIC_AGENT_PROMPT = """
@@ -100,16 +122,18 @@ async def root():
 async def health_check():
     """Проверка здоровья сервиса"""
     openai_status = "configured" if client else "missing_key"
+    rag_status = "configured" if rag_service else "not_configured"
     
     return {
         "status": "healthy",
         "openai_status": openai_status,
+        "rag_status": rag_status,
         "sessions_active": len(chat_history)
     }
 
-@app.post("/api/chat/message", response_model=ChatResponse)
+@app.post("/api/chat/message", response_model=ChatResponseWithSources)
 async def chat_message(chat_data: ChatMessage):
-    """Отправка сообщения AI агенту"""
+    """Отправка сообщения AI агенту с RAG поддержкой"""
     try:
         session_id = chat_data.session_id
         user_message = chat_data.message.strip()
@@ -117,84 +141,93 @@ async def chat_message(chat_data: ChatMessage):
         if not user_message:
             raise HTTPException(status_code=400, detail="Сообщение не может быть пустым")
         
-        # Проверяем OpenAI клиент
-        if not client:
+        # Проверяем доступность сервисов
+        if not client and not rag_service:
             raise HTTPException(
                 status_code=503, 
-                detail="OpenAI API ключ не настроен. Обратитесь к администратору."
+                detail="AI сервисы не настроены. Обратитесь к администратору."
             )
         
-        # Получаем или создаем историю чата
-        if session_id not in chat_history:
-            chat_history[session_id] = [
-                {"role": "system", "content": TITANIC_AGENT_PROMPT}
-            ]
-            logger.info(f"Создана новая сессия: {session_id}")
+        logger.info(f"💬 Запрос от сессии {session_id}: {user_message}")
         
-        # Добавляем сообщение пользователя
-        chat_history[session_id].append({
-            "role": "user", 
-            "content": user_message
-        })
+        # Приоритет: сначала пробуем RAG, затем fallback на обычный OpenAI
+        if rag_service:
+            try:
+                logger.info("🧠 Используем RAG для ответа...")
+                rag_result = rag_service.get_response(user_message, session_id)
+                
+                return ChatResponseWithSources(
+                    response=rag_result["response"],
+                    session_id=session_id,
+                    status="success",
+                    sources=rag_result.get("sources", []),
+                    has_rag=True
+                )
+                
+            except Exception as e:
+                logger.warning(f"⚠️ RAG недоступен, переключаемся на базовый AI: {e}")
+                # Fallback на обычный OpenAI
         
-        # Ограничиваем историю (последние 20 сообщений + system prompt)
-        if len(chat_history[session_id]) > 21:
-            chat_history[session_id] = [chat_history[session_id][0]] + chat_history[session_id][-20:]
+        # Fallback: обычный OpenAI без RAG
+        if client:
+            logger.info("🤖 Используем базовый OpenAI...")
+            
+            # Получаем или создаем историю чата для сессии
+            if session_id not in chat_history:
+                chat_history[session_id] = [
+                    {"role": "system", "content": TITANIC_AGENT_PROMPT}
+                ]
+            
+            # Добавляем сообщение пользователя
+            chat_history[session_id].append({
+                "role": "user", 
+                "content": user_message
+            })
+            
+            # Ограничиваем историю
+            if len(chat_history[session_id]) > 21:
+                chat_history[session_id] = [chat_history[session_id][0]] + chat_history[session_id][-20:]
+            
+            # Вызов OpenAI API
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=chat_history[session_id],
+                max_tokens=400,
+                temperature=0.8,
+                presence_penalty=0.1,
+                frequency_penalty=0.1
+            )
+            
+            ai_response = response.choices[0].message.content.strip()
+            
+            # Добавляем ответ AI в историю
+            chat_history[session_id].append({
+                "role": "assistant",
+                "content": ai_response
+            })
+            
+            return ChatResponseWithSources(
+                response=ai_response,
+                session_id=session_id,
+                status="success",
+                sources=[],
+                has_rag=False
+            )
         
-        logger.info(f"Отправка запроса к OpenAI для сессии {session_id}")
-        
-        # Вызов OpenAI API (новый синтаксис)
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=chat_history[session_id],
-            max_tokens=400,
-            temperature=0.8,
-            presence_penalty=0.1,
-            frequency_penalty=0.1
+        # Если ничего не работает
+        raise HTTPException(
+            status_code=503,
+            detail="Все AI сервисы временно недоступны"
         )
         
-        ai_response = response.choices[0].message.content.strip()
-        
-        # Добавляем ответ AI в историю
-        chat_history[session_id].append({
-            "role": "assistant",
-            "content": ai_response
-        })
-        
-        logger.info(f"Успешный ответ для сессии {session_id}")
-        
-        return ChatResponse(
-            response=ai_response,
-            session_id=session_id,
-            status="success"
-        )
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        # Универсальная обработка ошибок для новой версии OpenAI
-        error_message = str(e)
-        logger.error(f"Ошибка при обработке запроса: {error_message}")
-        
-        # Определяем тип ошибки по содержимому сообщения
-        if "authentication" in error_message.lower() or "unauthorized" in error_message.lower():
-            raise HTTPException(
-                status_code=401, 
-                detail="Неверный OpenAI API ключ"
-            )
-        elif "rate limit" in error_message.lower() or "quota" in error_message.lower():
-            raise HTTPException(
-                status_code=429, 
-                detail="Слишком много запросов. Попробуйте позже."
-            )
-        elif "openai" in error_message.lower():
-            raise HTTPException(
-                status_code=502, 
-                detail="Временная проблема с AI сервисом. Попробуйте позже."
-            )
-        else:
-            raise HTTPException(
-                status_code=500, 
-                detail="Произошла внутренняя ошибка сервера"
-            )
+        logger.error(f"💥 Неожиданная ошибка: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Произошла внутренняя ошибка сервера"
+        )
 
 @app.delete("/api/chat/session/{session_id}")
 async def clear_chat_session(session_id: str):
@@ -204,6 +237,19 @@ async def clear_chat_session(session_id: str):
         return {"message": f"История сессии {session_id} очищена"}
     else:
         raise HTTPException(status_code=404, detail="Сессия не найдена")
+
+@app.delete("/api/chat/rag-memory/{session_id}")
+async def clear_rag_memory(session_id: str):
+    """Очистка памяти RAG для конкретной сессии"""
+    try:
+        if rag_service:
+            rag_service.clear_memory()
+            return {"message": f"RAG память для сессии {session_id} очищена"}
+        else:
+            return {"message": "RAG сервис не активен"}
+    except Exception as e:
+        logger.error(f"Ошибка очистки RAG памяти: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка очистки памяти")
 
 # Запуск сервера
 if __name__ == "__main__":
