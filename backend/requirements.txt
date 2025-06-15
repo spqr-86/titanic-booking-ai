@@ -3,8 +3,8 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==1.10.12
 
-# OpenAI and utilities
-openai==1.3.7
+# OpenAI - обновленная версия
+openai==1.6.1
 python-dotenv==1.0.0
 python-multipart==0.0.6
 
