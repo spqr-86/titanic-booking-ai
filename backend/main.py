@@ -43,7 +43,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:8000", 
         "https://*.railway.app",  # Railway domains
-        "https://titanic-ai-frontend.up.railway.app",  # Конкретный домен (обновим позже)
+        "https://unique-adventure-production.up.railway.app",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE"],
