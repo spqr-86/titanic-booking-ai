@@ -15,7 +15,7 @@ langchain-community==0.0.7
 
 # Vector database
 chromadb==0.4.15
-tiktoken==0.5.1
+tiktoken==0.5.2
 
 # Базовые зависимости
 httpx==0.24.1
