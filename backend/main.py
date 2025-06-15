@@ -8,6 +8,17 @@ from dotenv import load_dotenv
 import logging
 from services.rag_service import TitanicRAGService
 
+# Railway production settings
+PORT = int(os.getenv("PORT", 8000))
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+# Настройка логирования для Railway
+if ENVIRONMENT == "production":
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
 # Отключаем телеметрию ChromaDB
 os.environ["ANONYMIZED_TELEMETRY"] = "False"  
 os.environ["CHROMA_CLIENT_TELEMETRY"] = "False"
@@ -28,9 +39,14 @@ app = FastAPI(
 # CORS настройка для frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене заменить на конкретные домены
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000", 
+        "https://*.railway.app",  # Railway domains
+        "https://titanic-ai-frontend.up.railway.app",  # Конкретный домен (обновим позже)
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -254,11 +270,10 @@ async def clear_rag_memory(session_id: str):
 # Запуск сервера
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
-        port=port, 
-        reload=True,
-        log_level="info"
+        port=PORT,
+        reload=(ENVIRONMENT != "production"),
+        log_level="info" if ENVIRONMENT == "production" else "debug"
     )
