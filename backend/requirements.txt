@@ -1,27 +1,23 @@
-# Core FastAPI stack
-fastapi==0.110.0
-uvicorn[standard]==0.27.1
-pydantic==2.6.1
+# Core FastAPI stack - стабильные версии
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.4.2
 
 # OpenAI
-python-dotenv==1.0.1
-python-multipart==0.0.9
+openai==1.6.1
+python-dotenv==1.0.0
+python-multipart==0.0.6
 
-# LangChain
-langchain==0.1.8
-langchain-openai==0.0.6
-langchain-community==0.0.20
-langchain-core==0.1.23
+# LangChain - полностью совместимая комбинация
+langchain==0.0.350
+langchain-openai==0.0.2
+langchain-community==0.0.7
 
-# Vector database 
-chromadb==0.4.22
-tiktoken==0.6.0
+# Vector database
+chromadb==0.4.15
+tiktoken==0.5.1
 
-# Дополнительные зависимости для стабильности
-httpx==0.26.0
-numpy==1.26.4
-sqlalchemy==2.0.25
-
-# Compatibility и утилиты
-typing-extensions==4.9.0
-annotated-types==0.6.0
+# Базовые зависимости
+httpx==0.24.1
+typing-extensions==4.8.0
+pydantic-core==2.10.1
