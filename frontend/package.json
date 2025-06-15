@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Titanic Booking Assistant Frontend",
   "scripts": {
-    "start": "python3 -m http.server $PORT",
+    "start": "npx serve -s . -l $PORT",
     "build": "echo 'Static files ready'"
   },
   "engines": {
-    "python": "3.x"
+    "node": "18.x"
   }
 }
