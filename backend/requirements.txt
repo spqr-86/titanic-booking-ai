@@ -20,4 +20,4 @@ tiktoken==0.5.2
 # Базовые зависимости
 httpx==0.24.1
 typing-extensions==4.8.0
-pydantic-core==2.14.5
+pydantic-core==2.18.4
