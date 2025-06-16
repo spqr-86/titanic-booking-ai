@@ -10,14 +10,17 @@ from services.rag_service import TitanicRAGService
 
 # Railway production settings
 PORT = int(os.getenv("PORT", 8000))
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 
-# Настройка логирования для Railway
-if ENVIRONMENT == "production":
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+# Настройка логирования
+LOG_LEVEL = logging.DEBUG if ENVIRONMENT == "development" else logging.INFO
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+logger.info(f"⚙️ Запуск в режиме: {ENVIRONMENT.upper()}")
 
 # Отключаем телеметрию ChromaDB
 os.environ["ANONYMIZED_TELEMETRY"] = "False"  
