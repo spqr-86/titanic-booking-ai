@@ -146,7 +146,7 @@ async def health_check():
     rag_status = "configured" if rag_service else "not_configured"
     
     rag_working = False
-    if rag_service and hasattr(rag_service, 'qa_chain') and rag_service.qa_chain:
+    if rag_service and hasattr(rag_service, 'conversational_rag_chain') and rag_service.conversational_rag_chain:
         rag_working = True
     
     return {
@@ -171,7 +171,7 @@ async def chat_message(chat_data: ChatMessage):
         logger.info(f"💬 Запрос от сессии {session_id}: {user_message}")
         
         # Приоритет: сначала RAG, потом fallback
-        if rag_service and hasattr(rag_service, 'qa_chain') and rag_service.qa_chain:
+        if rag_service and hasattr(rag_service, 'conversational_rag_chain') and rag_service.conversational_rag_chain:
             try:
                 logger.info("🧠 Используем RAG для ответа...")
                 rag_result = rag_service.get_response(user_message, session_id)
