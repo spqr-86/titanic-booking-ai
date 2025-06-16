@@ -58,7 +58,7 @@ rag_service = None
 if not openai_api_key:
     logger.warning("OPENAI_API_KEY не найден в переменных окружения")
 else:
-    client = OpenAI(api_key=openai_api_key)
+    client = OpenAI()
 
     # Инициализация RAG сервиса
     try:
