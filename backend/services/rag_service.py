@@ -5,7 +5,7 @@ from langchain_community.document_loaders.text import TextLoader
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.chat_history import BaseMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # --- Глобальное хранилище сессий ---
 store = {}
 
-def get_session_history(session_id: str) -> BaseMessageHistory:
+def get_session_history(session_id: str) -> BaseChatMessageHistory:
     """Получает историю чата для указанной сессии."""
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
