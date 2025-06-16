@@ -4,7 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
-from langchain.chat_models import init_chat_models
+from langchain.chat_models import init_chat_model
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 import os
