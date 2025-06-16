@@ -1,10 +1,10 @@
 from typing import List, Optional
 from langchain_community.document_loaders.text import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models import init_chat_models
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 import os
@@ -16,9 +16,8 @@ logger = logging.getLogger(__name__)
 class TitanicRAGService:
     """RAG сервис для исторически точных ответов о Титанике"""
     
-    def __init__(self, openai_api_key: str):
-        self.api_key = openai_api_key
-        self.embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    def __init__(self):
+        self.embeddings = OpenAIEmbeddings()
         self.vector_store = None
         self.qa_chain = None
         self.memory = ConversationBufferMemory(
@@ -182,10 +181,11 @@ class TitanicRAGService:
         
         # Создание цепочки
         self.qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=ChatOpenAI(
-                openai_api_key=self.api_key,
-                model_name="gpt-3.5-turbo",
-                temperature=0.8
+            llm = init_chat_model(
+                "gpt-3.5-turbo",
+                model_provider="openai", 
+                temperature=0.8,
+                api_key=self.api_key
             ),
             retriever=self.vector_store.as_retriever(
                 search_type="similarity",
