@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 # Загружаем переменные окружения
 load_dotenv()
 
-print("🔑 API Key из переменной:", repr(os.getenv("OPENAI_API_KEY")))
-
 app = FastAPI(
     title="Titanic Booking AI",
     description="AI-powered booking assistant for RMS Titanic maiden voyage",
@@ -254,7 +252,8 @@ async def clear_rag_memory(session_id: str):
     """Очистка памяти RAG для конкретной сессии"""
     try:
         if rag_service:
-            rag_service.clear_memory()
+            # Передаем session_id в метод очистки
+            rag_service.clear_memory(session_id) 
             return {"message": f"RAG память для сессии {session_id} очищена"}
         else:
             return {"message": "RAG сервис не активен"}

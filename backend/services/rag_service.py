@@ -1,120 +1,134 @@
-from typing import List, Optional
+from typing import List
+from operator import itemgetter
+
 from langchain_community.document_loaders.text import TextLoader
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.chat_history import BaseMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.chains import ConversationalRetrievalChain
-from langchain.chat_models import init_chat_model
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts import PromptTemplate
+from langchain_community.vectorstores import Chroma
+from langchain.memory import ChatMessageHistory # In-memory store
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+
 import os
 from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
 
+# --- Глобальное хранилище сессий ---
+store = {}
+
+def get_session_history(session_id: str) -> BaseMessageHistory:
+    """Получает историю чата для указанной сессии."""
+    if session_id not in store:
+        store[session_id] = ChatMessageHistory()
+    return store[session_id]
+
+# --- Класс сервиса ---
+
 class TitanicRAGService:
-    """RAG сервис для исторически точных ответов о Титанике"""
+    """
+    Современный RAG сервис для исторически точных ответов о Титанике,
+    построенный на LCEL и поддерживающий сессии.
+    """
     
     def __init__(self):
         self.embeddings = OpenAIEmbeddings()
         self.vector_store = None
-        self.qa_chain = None
-        self.memory = ConversationBufferMemory(
-            memory_key="chat_history",
-            return_messages=True,
-            output_key="answer"
+        self.llm = ChatOpenAI(
+            model="gpt-3.5-turbo",
+            temperature=0.8,
+            api_key=os.getenv("OPENAI_API_KEY")
         )
+        # Цепочка будет инициализирована после настройки RAG
+        self.conversational_rag_chain = None
         self.setup_rag()
     
     def setup_rag(self):
-        """Инициализация RAG системы"""
+        """Инициализация RAG системы."""
         try:
             logger.info("🚢 Инициализация базы знаний о Титанике...")
             
-            # Загрузка документов
-            documents = self.load_titanic_documents()
-            
-            if not documents:
-                logger.warning("⚠️ Документы не найдены, создаем пустую базу")
-                self.vector_store = Chroma(
-                    embedding_function=self.embeddings,
-                    persist_directory="./data/vectors"
-                )
+            docs_dir = Path("./data/knowledge")
+            persist_dir = "./data/vectors"
+
+            if os.path.exists(persist_dir) and os.listdir(persist_dir):
+                 # Просто загружаем существующую базу
+                logger.info(f"💾 Загрузка существующей векторной базы из {persist_dir}")
+                self.vector_store = Chroma(persist_directory=persist_dir, embedding_function=self.embeddings)
             else:
-                # Создание векторной базы
+                 # Загружаем документы и создаем базу
+                logger.info("📄 Документы не найдены в вектороной базе, создаем новую...")
+                documents = self.load_titanic_documents(docs_dir)
+                if not documents:
+                    logger.error("❌ Не удалось загрузить документы. RAG не будет работать.")
+                    return
+                
                 self.vector_store = Chroma.from_documents(
                     documents=documents,
                     embedding=self.embeddings,
-                    persist_directory="./data/vectors"
+                    persist_directory=persist_dir
                 )
             
-            # Создание конвейера с памятью
             self.create_conversation_chain()
-            
             logger.info("✅ RAG система инициализирована успешно")
             
         except Exception as e:
-            logger.error(f"❌ Ошибка инициализации RAG: {e}")
+            logger.error(f"❌ Ошибка инициализации RAG: {e}", exc_info=True)
             raise
-    
-    def load_titanic_documents(self):
-        """Загрузка и разбивка исторических документов"""
-        docs_dir = Path("./data/knowledge")
+
+    def load_titanic_documents(self, docs_dir: Path):
+        """Загрузка и разбивка исторических документов."""
         documents = []
-        
         if not docs_dir.exists():
             logger.warning(f"📁 Папка с документами не найдена: {docs_dir}")
             return documents
         
-        # Загрузка всех .txt файлов
         for file_path in docs_dir.glob("*.txt"):
             try:
                 loader = TextLoader(str(file_path), encoding='utf-8')
                 docs = loader.load()
-                
-                # Добавляем метаданные о источнике
                 for doc in docs:
                     doc.metadata['source_file'] = file_path.name
-                    doc.metadata['topic'] = self.get_topic_from_filename(file_path.name)
-                
                 documents.extend(docs)
-                logger.info(f"📄 Загружен документ: {file_path.name}")
-                
             except Exception as e:
                 logger.error(f"❌ Ошибка загрузки {file_path}: {e}")
         
-        # Разбивка на чанки
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800,
-            chunk_overlap=100,
-            separators=["\n\n", "\n", ". ", ", ", " "]
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+        split_docs = text_splitter.split_documents(documents)
+        logger.info(f"📊 Создано {len(split_docs)} чанков из {len(documents)} документов.")
+        return split_docs
+
+    def create_conversation_chain(self):
+        """Создание конверсационной цепочки с использованием LCEL."""
+        retriever = self.vector_store.as_retriever(
+            search_type="similarity",
+            search_kwargs={"k": 4} # Увеличим кол-во документов для лучшего контекста
+        )
+
+        # 1. Промпт для переформулировки вопроса с учетом истории
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "Учитывая историю беседы и последний вопрос, который может ссылаться на контекст из истории, переформулируй его в самостоятельный вопрос, который можно понять без истории чата. НЕ отвечай на вопрос, просто переформулируй его, если это необходимо, или верни как есть, если он уже самостоятельный."),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
         )
         
-        split_docs = text_splitter.split_documents(documents)
-        logger.info(f"📊 Создано {len(split_docs)} чанков из {len(documents)} документов")
-        
-        return split_docs
-    
-    def get_topic_from_filename(self, filename: str) -> str:
-        """Определение темы по имени файла"""
-        topic_map = {
-            'titanic_specifications.txt': 'технические_характеристики',
-            'cabin_details.txt': 'каюты_и_размещение',
-            'dining_menus.txt': 'питание_и_рестораны',
-            'famous_passengers.txt': 'знаменитые_пассажиры',
-            'journey_schedule.txt': 'расписание_и_маршрут'
-        }
-        return topic_map.get(filename, 'общая_информация')
-    
-    def create_conversation_chain(self):
-        """Создание конверсационной цепочки с кастомным промптом"""
-        
-        # Кастомный промпт для кассира 1912 года
-        custom_prompt = PromptTemplate(
-            input_variables=["context", "question", "chat_history"],
-            template="""Ты - вежливый и профессиональный кассир компании White Star Line в апреле 1912 года. 
-Твое имя - Мистер Харрисон. Ты работаешь в главном офисе компании в Саутгемптоне.
+        history_aware_retriever = create_history_aware_retriever(
+            self.llm, retriever, contextualize_q_prompt
+        )
+
+        # 2. Промпт для финального ответа (ваш кастомный промпт)
+        qa_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", """Ты - вежливый и профессиональный кассир компании White Star Line в апреле 1912 года. Твое имя - Мистер Харрисон.
+Ты работаешь в главном офисе компании в Саутгемптоне.
 
 ИСТОРИЧЕСКИЙ КОНТЕКСТ:
 Текущая дата: 9 апреля 1912 года (за день до отправления)
@@ -141,12 +155,6 @@ class TitanicRAGService:
 - Самолеты (кроме экспериментальных аэропланов)
 - Любые технологии после 1912 года
 
-ИНФОРМАЦИЯ ИЗ АРХИВОВ КОМПАНИИ:
-{context}
-
-ИСТОРИЯ НАШЕГО РАЗГОВОРА:
-{chat_history}
-
 СТИЛЬ ОБЩЕНИЯ:
 - К мужчинам: "сэр", "мистер [имя]", "джентльмен"
 - К женщинам: "мэм", "миссис [имя]", "леди"
@@ -172,72 +180,63 @@ class TitanicRAGService:
 
 Используй только информацию из контекста выше. 
 Если информации нет в контексте, честно скажи что нужно уточнить в главном офисе
+                 
 
+ИСТОРИЯ НАШЕГО РАЗГОВОРА:
+{chat_history}
 
-ВОПРОС ПАССАЖИРА: {question}
-
-ОТВЕТ КАССИРА:"""
+ИНФОРМАЦИЯ ИЗ АРХИВОВ КОМПАНИИ ДЛЯ ОТВЕТА:
+{context}"""),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
         )
         
-        # Создание цепочки
-        self.qa_chain = ConversationalRetrievalChain.from_llm(
-            llm = init_chat_model(
-                "gpt-3.5-turbo",
-                model_provider="openai", 
-                temperature=0.8,
-                api_key=self.api_key
-            ),
-            retriever=self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 3}
-            ),
-            memory=self.memory,
-            return_source_documents=True,
-            return_generated_question=True,
-            combine_docs_chain_kwargs={"prompt": custom_prompt}
+        # 3. Цепочка для генерации ответа на основе документов
+        Youtube_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+        
+        # 4. Финальная цепочка RAG
+        rag_chain = create_retrieval_chain(history_aware_retriever, Youtube_chain)
+
+        # 5. Оборачиваем все в RunnableWithMessageHistory для управления сессиями
+        self.conversational_rag_chain = RunnableWithMessageHistory(
+            rag_chain,
+            get_session_history,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+            output_messages_key="answer",
         )
-    
+
     def get_response(self, user_query: str, session_id: str) -> dict:
-        """Получение ответа с использованием RAG и памяти"""
+        """Получение ответа с использованием RAG и правильной памяти для сессии."""
         try:
-            if not self.qa_chain:
-                return {
-                    "response": "Прошу прощения, архивы компании временно недоступны. Попробуйте позже.",
-                    "sources": [],
-                    "session_id": session_id
-                }
+            if not self.conversational_rag_chain:
+                return {"response": "Прошу прощения, архивы компании временно недоступны.", "sources": []}
             
-            # Получаем ответ через RAG цепочку
-            result = self.qa_chain({
-                "question": user_query
-            })
+            # Вызываем цепочку, передавая ID сессии в `config`
+            result = self.conversational_rag_chain.invoke(
+                {"input": user_query},
+                config={"configurable": {"session_id": session_id}},
+            )
             
-            # Форматируем источники
             sources = []
-            if result.get("source_documents"):
-                for doc in result["source_documents"]:
+            if result.get("context"):
+                for doc in result["context"]:
                     sources.append({
-                        "content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
+                        "content": doc.page_content,
                         "source": doc.metadata.get("source_file", "unknown"),
-                        "topic": doc.metadata.get("topic", "general")
                     })
             
-            return {
-                "response": result["answer"],
-                "sources": sources,
-                "session_id": session_id,
-                "generated_question": result.get("generated_question", user_query)
-            }
+            return {"response": result["answer"], "sources": sources}
             
         except Exception as e:
-            logger.error(f"❌ Ошибка генерации ответа: {e}")
-            return {
-                "response": "Приношу извинения, произошла техническая неполадка в архивной системе. Попробуйте переформулировать вопрос.",
-                "sources": [],
-                "session_id": session_id
-            }
-    
-    def clear_memory(self):
-        """Очистка памяти разговора"""
-        self.memory.clear()
-        logger.info("🗑️ Память разговора очищена")
+            logger.error(f"❌ Ошибка генерации ответа: {e}", exc_info=True)
+            return {"response": "Приношу извинения, произошла техническая неполадка. Попробуйте переформулировать вопрос.", "sources": []}
+
+    def clear_memory(self, session_id: str):
+        """Очистка памяти для конкретной сессии."""
+        if session_id in store:
+            store[session_id].clear()
+            logger.info(f"🗑️ Память разговора для сессии {session_id} очищена")
+        else:
+            logger.warning(f"🤷‍♂️ Попытка очистить несуществующую сессию: {session_id}")
