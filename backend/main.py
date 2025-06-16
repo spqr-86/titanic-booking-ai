@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 # Загружаем переменные окружения
 load_dotenv()
 
+print("🔑 API Key из переменной:", repr(os.getenv("OPENAI_API_KEY")))
+
 app = FastAPI(
     title="Titanic Booking AI",
     description="AI-powered booking assistant for RMS Titanic maiden voyage",
