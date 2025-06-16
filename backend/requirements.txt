@@ -9,10 +9,10 @@ python-dotenv==1.0.0
 python-multipart>=0.0.7
 
 # LangChain - полностью совместимая комбинация
-langchain>=0.3.25
-langchain-core>=0.3.58
-langchain-openai>=0.3.7
-langchain-community>=0.0.36
+langchain==0.3.28
+langchain-core==0.3.65
+langchain-openai==0.3.23
+langchain-community==0.3.28
 
 # Vector database
 chromadb==0.4.15
