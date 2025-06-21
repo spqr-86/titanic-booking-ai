@@ -1,8 +1,10 @@
 // Конфигурация API
 const API_CONFIG = {
-    BASE_URL: 'https://titanic-booking-ai-production.up.railway.app',
+    // BASE_URL: 'https://titanic-booking-ai-production.up.railway.app',
+    BASE_URL: 'http://localhost:8000',
+
     ENDPOINTS: {
-        CHAT: '/api/chat/message',
+        CHAT: '/api/chat',
         HEALTH: '/api/health',
         CLEAR_SESSION: '/api/chat/session'
     }
@@ -28,9 +30,13 @@ function getSessionId() {
 async function checkAPIHealth() {
     try {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HEALTH}`);
+        if (!response.ok) {
+            console.error(`❌ API вернул ошибку: ${response.status}`);
+            return false;
+        }
         const data = await response.json();
         console.log('✅ API Status:', data);
-        return data.status === 'healthy' && data.openai_status === 'configured';
+        return data.status === 'healthy';
     } catch (error) {
         console.error('❌ API недоступен:', error);
         return false;
@@ -74,7 +80,7 @@ function formatSources(sources) {
     
     sources.forEach((source, index) => {
         sourcesHtml += `<div style="margin: 5px 0; padding: 5px; background: rgba(212, 175, 55, 0.1); border-radius: 5px;">`;
-        sourcesHtml += `<strong>${source.topic || 'Архивы'}:</strong> ${source.content}`;
+        sourcesHtml += `<strong>${source.source || 'Архивы'}:</strong> ${source.content}`;
         sourcesHtml += `</div>`;
     });
     

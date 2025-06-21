@@ -8,9 +8,14 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain.memory import ChatMessageHistory  # In-memory store
+from langchain_community.chat_message_histories import ChatMessageHistory  # In-memory store
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
+
+from .prompt_loader import load_prompt
 
 import os
 from pathlib import Path
@@ -103,7 +108,7 @@ class TitanicRAGService:
                 logger.error(f"❌ Ошибка загрузки {file_path}: {e}")
 
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800, chunk_overlap=100
+            chunk_size=450, chunk_overlap=50
         )
         split_docs = text_splitter.split_documents(documents)
         logger.info(
@@ -112,110 +117,69 @@ class TitanicRAGService:
         return split_docs
 
     def create_conversation_chain(self):
-        """Создание конверсационной цепочки с использованием LCEL."""
-        logger.info("⚙️ Начинаем создание conversational chain...")
+        """
+        Создание конверсационной цепочки, которая динамически загружает базовый промпт.
+        """
+        logger.info("⚙️ Начинаем создание conversational chain (модульная версия)...")
         try:
-            retriever = self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={
-                    "k": 4
-                },  # Увеличим кол-во документов для лучшего контекста
+            base_retriever = self.vector_store.as_retriever(
+                search_type="mmr",
+                search_kwargs={"k": 8, "fetch_k": 50},
+            )
+            # Используем быструю и дешевую модель для задачи фильтрации
+            compressor_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+            compressor = LLMChainExtractor.from_llm(compressor_llm)
+
+            # Создаем компрессионный ретривер
+            # Он оборачивает наш базовый ретривер и применяет к его результатам компрессор
+            compression_retriever = ContextualCompressionRetriever(
+                base_compressor=compressor,
+                base_retriever=base_retriever
             )
 
-            # 1. Промпт для переформулировки вопроса с учетом истории
+            # --- Шаг 1: Создаем history-aware retriever (без изменений) ---
             contextualize_q_prompt = ChatPromptTemplate.from_messages(
                 [
-                    (
-                        "system",
-                        "Учитывая историю беседы и последний вопрос, который может ссылаться на контекст из истории, переформулируй его в самостоятельный вопрос, который можно понять без истории чата. НЕ отвечай на вопрос, просто переформулируй его, если это необходимо, или верни как есть, если он уже самостоятельный.",
-                    ),
+                    ("system", "Учитывая историю беседы и последний вопрос, который может ссылаться на контекст из истории, переформулируй его в самостоятельный вопрос, который можно понять без истории чата. НЕ отвечай на вопрос, просто переформулируй его, если это необходимо, или верни как есть, если он уже самостоятельный."),
                     MessagesPlaceholder("chat_history"),
                     ("human", "{input}"),
                 ]
             )
-
             history_aware_retriever = create_history_aware_retriever(
-                self.llm, retriever, contextualize_q_prompt
+                self.llm, compression_retriever, contextualize_q_prompt
             )
 
-            # 2. Промпт для финального ответа (ваш кастомный промпт)
+            # --- Шаг 2: Динамически собираем промпт для ответа ---
+
+            # 2.1. Загружаем базовую личность из файла (единый источник правды)
+            base_persona_prompt = load_prompt("base_persona_prompt.txt")
+
+            # 2.2. Создаем шаблон, специфичный ТОЛЬКО для RAG-задач
+            rag_context_template = """
+
+--- ИНФОРМАЦИЯ ИЗ АРХИВОВ КОМПАНИИ ДЛЯ ОТВЕТА ---
+{context}"""
+            # Примечание: history уже будет вставлена через MessagesPlaceholder
+
+            # 2.3. Собираем финальный системный промпт
+            final_system_prompt = f"{base_persona_prompt}{rag_context_template}"
+
+            # 2.4. Создаем ChatPromptTemplate на основе собранного промпта
             qa_prompt = ChatPromptTemplate.from_messages(
                 [
-                    (
-                        "system",
-                        """Ты - вежливый и профессиональный кассир компании White Star Line в апреле 1912 года. Твое имя - Мистер Харрисон.
-    Ты работаешь в главном офисе компании в Саутгемптоне.
-
-    ИСТОРИЧЕСКИЙ КОНТЕКСТ:
-    Текущая дата: 9 апреля 1912 года (за день до отправления)
-    Ты работаешь в White Star Line и очень гордишься новейшим кораблем компании.
-
-    ТВОЯ ЛИЧНОСТЬ:
-    - Настоящий британский джентльмен с безупречными манерами
-    - Сотрудник White Star Line, гордящийся компанией
-    - Воспитанный, сдержанный, но теплый в общении
-    - Знаток морских традиций и этикета
-
-    ТЕХНОЛОГИИ КОТОРЫЕ ТЫ ЗНАЕШЬ:
-    - Электрическое освещение (относительная новинка)
-    - Радиотелеграф Marconi для связи с берегом
-    - Паровые машины и турбины
-    - Фотоаппараты
-    - Граммофоны для музыки
-    - Газеты, книги, телеграф
-
-    ЧЕГО ТЫ НЕ ЗНАЕШЬ (обязательно переспрашивай):
-    - Интернет, Wi-Fi, компьютеры, ноутбуки
-    - Телевизоры, современные радиоприемники  
-    - Мобильные телефоны
-    - Самолеты (кроме экспериментальных аэропланов)
-    - Любые технологии после 1912 года
-
-    СТИЛЬ ОБЩЕНИЯ:
-    - К мужчинам: "сэр", "мистер [имя]", "джентльмен"
-    - К женщинам: "мэм", "миссис [имя]", "леди"
-    - НЕ используй "сэр/мэм" одновременно - определись по контексту
-    - Если имя названо - используй "мистер [имя]" или "миссис [имя]"
-    - Используй: "Весьма рад помочь", "Осмелюсь предложить", "Крайне сожалею"
-    - Будь сдержанно-вежливым, как британский джентльмен
-    - Иногда упоминай погоду ("В такой прекрасный день...")
-    - Извиняйся за малейшие неудобства
-    - Скромно описывай роскошь Титаника
-
-    КРИТИЧЕСКИ ВАЖНО - СТРОГИЕ ОГРАНИЧЕНИЯ:
-    - Ты живешь в 1912 году и НЕ ЗНАЕШЬ ничего после этой даты
-    - НИКОГДА не упоминай "современные технологии", "ноутбуки", "компьютеры", "интернет"
-    - НЕ ЗНАЕШЬ про самолеты, автомобили (кроме самых ранних), радио (кроме корабельного телеграфа)
-    - НИКОГДА не упоминай катастрофу Титаника - ты не знаешь что она произойдет
-    - Если не понимаешь вопрос пассажира - вежливо переспроси и уточни
-    - Подчеркивай безопасность и "непотопляемость" корабля
-
-    ФОРМАТ ОТВЕТА НА НЕЗНАКОМЫЕ СЛОВА:
-    "Крайне сожалею, сэр/мэм, но боюсь, я не знаком с термином '[слово]'. 
-    Не могли бы Вы пояснить? А пока осмелюсь рассказать о замечательных удобствах нашего Титаника..."
-
-    Используй только информацию из контекста выше. 
-    Если информации нет в контексте, честно скажи что нужно уточнить в главном офисе
-                    
-
-    ИСТОРИЯ НАШЕГО РАЗГОВОРА:
-    {chat_history}
-
-    ИНФОРМАЦИЯ ИЗ АРХИВОВ КОМПАНИИ ДЛЯ ОТВЕТА:
-    {context}""",
-                    ),
+                    ("system", final_system_prompt),
                     MessagesPlaceholder("chat_history"),
                     ("human", "{input}"),
                 ]
             )
 
-            # 3. Цепочка для генерации ответа на основе документов
+            # --- Шаг 3: Собираем финальную цепочку (без изменений) ---
+            
             Youtube_chain = create_stuff_documents_chain(self.llm, qa_prompt)
-
-            # 4. Финальная цепочка RAG
             rag_chain = create_retrieval_chain(history_aware_retriever, Youtube_chain)
 
-            # 5. Оборачиваем все в RunnableWithMessageHistory для управления сессиями
+            # --- Шаг 4: Оборачиваем в историю (без изменений) ---
+
             self.conversational_rag_chain = RunnableWithMessageHistory(
                 rag_chain,
                 get_session_history,
@@ -223,7 +187,7 @@ class TitanicRAGService:
                 history_messages_key="chat_history",
                 output_messages_key="answer",
             )
-            logger.info("✅ Conversational chain успешно создана и присвоена.")
+            logger.info("✅ Conversational chain (модульная) успешно создана.")
         except Exception as e:
             logger.critical(
                 f"💥 КРИТИЧЕСКАЯ ОШИБКА при создании conversational chain: {e}",
@@ -272,3 +236,6 @@ class TitanicRAGService:
             logger.info(f"🗑️ Память разговора для сессии {session_id} очищена")
         else:
             logger.warning(f"🤷‍♂️ Попытка очистить несуществующую сессию: {session_id}")
+
+
+rag_service_instance = TitanicRAGService()
