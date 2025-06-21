@@ -1,7 +1,7 @@
 // Конфигурация API
 const API_CONFIG = {
-    // BASE_URL: 'https://titanic-booking-ai-production.up.railway.app',
-    BASE_URL: 'http://localhost:8000',
+    BASE_URL: 'https://titanic-booking-ai-production.up.railway.app',
+    // BASE_URL: 'http://localhost:8000',
 
     ENDPOINTS: {
         CHAT: '/api/chat',
