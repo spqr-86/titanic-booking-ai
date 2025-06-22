@@ -232,13 +232,7 @@ pytest tests/test_api.py
 ## 📚 Источники
 
 - Encyclopedia Titanica
-- "Titanic: An Illustrated History" by Don Lynch
-- Harland and Wolff archives
-- White Star Line promotional materials (1912)
 
-## 📄 Лицензия
-
-MIT License - см. файл [LICENSE](LICENSE)
 
 ---
 
