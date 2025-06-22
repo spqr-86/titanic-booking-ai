@@ -159,21 +159,10 @@ DATABASE_URL=postgresql://user:pass@localhost/titanic_db
 - [ ] Интеграция с историческими фотографиями
 - [ ] Режим "экскурсии" по кораблю
 
-## 🤝 Вклад в проект
-
-Приветствуются любые улучшения! Особенно:
-- Дополнительные исторические факты
-- Улучшения промптов
-- Тесты на историческую точность
-
-См. [CONTRIBUTING.md](CONTRIBUTING.md) для деталей.
-
 ## 📚 Источники
 
 - Encyclopedia Titanica
-- "Titanic: An Illustrated History" by Don Lynch
-- White Star Line архивы
-- Исторические газеты 1912 года
+
 
 ## 📄 Лицензия
 
